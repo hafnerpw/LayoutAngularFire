@@ -1,0 +1,40 @@
+.roomControls {
+  min-width: 150px;
+  margin: 1em;
+  display: flex;
+  flex-direction: column;
+  align-content: space-between;
+  justify-items: stretch;
+
+  button {
+    margin: .3em;
+  }
+}
+
+.game {
+  flex-wrap: nowrap;
+}
+
+.example-full-width {
+  min-width: 260px;
+  width: 100%;
+}
+
+.ownVideo {
+  margin-bottom: -1em;
+  width: 100%;
+}
+
+.remoteVideos {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-evenly;
+  align-items: baseline;
+
+  .remoteVideo {
+    margin: .3em;
+    width: 260px;
+    height: 200px
+  }
+}

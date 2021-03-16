@@ -1,0 +1,28 @@
+<div class="flex-container">
+  <form class="example-form">
+    <mat-form-field class="flex-item">
+      <mat-label>Channel</mat-label>
+      <input type="text" matInput [formControl]="roomControl" [errorStateMatcher]="matcher"
+             placeholder="Room XY" [(ngModel)]="channelName">
+      <mat-error *ngIf="roomControl.hasError('required')">
+        Channel is <strong>required</strong>
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-item">
+      <mat-label>Username</mat-label>
+      <input type="text" matInput [formControl]="validControl" [errorStateMatcher]="matcher"
+             placeholder="Max Mustermann" [(ngModel)]="username">
+      <mat-hint>Enter your name</mat-hint>
+      <mat-error *ngIf="validControl.hasError('minLength') && !validControl.hasError('required')">
+        Name is too short
+      </mat-error>
+      <mat-error *ngIf="validControl.hasError('required')">
+        Username is <strong>required</strong>
+      </mat-error>
+    </mat-form-field>
+    <a [disabled]="!validControl.valid || !roomControl.valid" class="flex-item" type="button" mat-raised-button color="primary" [routerLink]="['/room', channelName]" routerLinkActive="true" style="font-size: 18px; margin-top: 2em">
+      Connect
+    </a>
+  </form>
+</div>

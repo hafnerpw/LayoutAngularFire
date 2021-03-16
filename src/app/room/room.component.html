@@ -1,0 +1,57 @@
+<div class="content" role="main">
+
+  <div class="card-container game">
+    <canvas #gameCanvas [width]="ctxWidth" [height]="ctxHeight" style="border:1px solid #000000;">
+    </canvas>
+    <div class="roomControls">
+
+      <mat-form-field class="example-full-width">
+        <mat-label>Channel Name</mat-label>
+        <input matInput placeholder="Default" [(ngModel)]="channelName">
+      </mat-form-field>
+
+      <mat-form-field class="example-full-width">
+        <mat-label>Cameras</mat-label>
+        <mat-select [(ngModel)]="selectedDeviceId" (valueChange)="openCamera()">
+          <mat-option *ngFor="let camera of cameras" [value]="camera.deviceId">
+            {{camera.label}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button type="button" mat-raised-button color="primary">
+        log BTN
+      </button>
+
+      <button type="button" mat-raised-button color="primary" (click)="connect()">
+        log BTN
+      </button>
+
+      <button type="button" mat-raised-button color="primary">
+        log BTN
+      </button>
+
+      <button type="button" mat-raised-button color="primary">
+        log BTN
+      </button>
+      <div class="ownVideo">
+        <video #ownVideo autoplay style="width: 100%;" playsinline controls="false"></video>
+      </div>
+    </div>
+  </div>
+  <div class="remoteVideos">
+    <div class="remoteVideo">
+      <video autoplay style="width: 100%;" playsinline controls="false"></video>
+    </div>
+    <div class="remoteVideo">
+      <video autoplay style="width: 100%;" playsinline controls="false"></video>
+    </div>
+    <div class="remoteVideo">
+      <video autoplay style="width: 100%;" playsinline controls="false"></video>
+    </div>
+    <div class="remoteVideo">
+      <video autoplay style="width: 100%;" playsinline controls="false"></video>
+    </div>
+  </div>
+
+</div>
