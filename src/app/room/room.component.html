@@ -20,15 +20,19 @@
       </button>
 
       <button type="button" mat-raised-button color="primary" (click)="connect()">
-        connect
+        create Call
       </button>
 
       <button type="button" mat-raised-button color="primary" (click)="addEntry()">
         add PartyList Entry
       </button>
 
-      <button type="button" mat-raised-button color="primary">
-        log BTN
+      <mat-form-field class="flex-item">
+        <mat-label>Channel</mat-label>
+        <input type="text" matInput placeholder="Room XY" [(ngModel)]="callInput">
+      </mat-form-field>
+      <button type="button" mat-raised-button color="primary" (click)="answerCall()">
+        answer Call
       </button>
       <div class="ownVideo">
         <video #ownVideo autoplay style="width: 100%;" playsinline></video>

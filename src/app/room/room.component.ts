@@ -2,10 +2,7 @@ import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/
 import {ActivatedRoute} from "@angular/router";
 import {codex} from "./codex";
 import {environment} from "../../environments/environment";
-import {AngularFirestore, AngularFirestoreDocument} from "@angular/fire/firestore";
-
-export interface Item { host: string; }
-
+import {AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument} from "@angular/fire/firestore";
 
 @Component({
   selector: 'app-room',
@@ -18,10 +15,12 @@ export class RoomComponent implements OnInit, AfterViewInit {
 
   cameras: MediaDeviceInfo[];
   myUserId: string;
-  ownStream: MediaStream;
+  localStream: MediaStream;
   remoteStream: MediaStream;
 
-  private itemDoc: AngularFirestoreDocument<Item>;
+
+
+  private callDoc: AngularFirestoreDocument<any>;
 
 
   title = 'n1';
@@ -39,10 +38,13 @@ export class RoomComponent implements OnInit, AfterViewInit {
   ctxHeight = 600;
   channelName: string;
 
-  peerConnection: RTCPeerConnection;
+  pc: RTCPeerConnection;
 
   selectedDeviceId: string;
   private partyList: any;
+  private answerCandidates: AngularFirestoreCollection<any>;
+  private offerCandidates: AngularFirestoreCollection<any>;
+  callInput: string;
 
 
   ngOnInit(): void {
@@ -50,16 +52,11 @@ export class RoomComponent implements OnInit, AfterViewInit {
       this.channelName = params['roomId'];
     });
     this.ctx = this.canvas.nativeElement.getContext('2d');
-    this.peerConnection = new RTCPeerConnection(environment.configuration);
+    this.pc = new RTCPeerConnection(environment.configuration);
     this.myUserId = codex.guid();
 
-    this.peerConnection.onicecandidate = event => {
-      if( event.candidate){
-
-      }
-    }
-
-    this.peerConnection.ontrack = event => {
+    this.remoteStream = new MediaStream();
+    this.pc.ontrack = event => {
       event.streams[0].getTracks().forEach(track => {
         this.remoteStream.addTrack(track);
       })
@@ -68,38 +65,51 @@ export class RoomComponent implements OnInit, AfterViewInit {
   }
   constructor(private route: ActivatedRoute,private afs: AngularFirestore) {}
 
-  connect() {
+  async connect() {
     // add me to room
-    this.itemDoc = this.afs.doc<Item>('rooms/raum1');
+    this.callDoc = this.afs.collection('calls').doc();
+    this.offerCandidates = this.callDoc.collection('offerCandidates');
+    this.answerCandidates = this.callDoc.collection('answerCandidates');
 
-    this.peerConnection.onicecandidate = event => {
+    this.callInput = this.callDoc.ref.id;
 
+    // Get Cancidates for caller, save to db
+    this.pc.onicecandidate = event => {
+      event.candidate && this.offerCandidates.add(event.candidate.toJSON()); //toJSON nötig ?
     }
 
-    //prepare and send Offer
-    this.peerConnection.createOffer().then(offer => {
-      this.peerConnection.setLocalDescription(offer);
-    }).then(() => {
-      let sdpJson = JSON.stringify({sdp: this.peerConnection.localDescription})
-      this.itemDoc.collection('partyList')
-        .add({userId: this.myUserId, sdp: this.peerConnection.localDescription.sdp, type: this.peerConnection.localDescription.type});
+    // Create offer
+    const offerDescription = await this.pc.createOffer();
+    await this.pc.setLocalDescription(offerDescription);
+
+    const offer = {
+      sdp: offerDescription.sdp,
+      type: offerDescription.type,
+    };
+
+    await this.callDoc.set({offer});
+
+
+    // listen for remote answer
+    this.callDoc.snapshotChanges().subscribe(changes => {
+      const data = changes.payload.data();
+      if (!this.pc.currentRemoteDescription && data?.answer){
+        const answerDescription = new RTCSessionDescription(data.answer);
+        this.pc.setRemoteDescription(answerDescription);
+      }
     });
 
-    this.acceptConnections(false);
-  }
-
-  acceptConnections(isReceiverContent){
-    this.partyList = this.itemDoc.collection('partyList').valueChanges().subscribe(changes => {
-      this.partyList = changes.filter(a => a.userId !== this.myUserId) // mich selbst ausgenommen
-      // handle new things
-
+    // Listen for remote ICE candidates
+    this.answerCandidates.snapshotChanges().subscribe(snapshot => {
+      snapshot.forEach((change) => {
+        if (change.type === 'added'){
+          const candidate = new RTCIceCandidate(change.payload.doc.data())
+          this.pc.addIceCandidate(candidate);
+        }
+      })
     })
+
   }
-
-
-
-
-
 
 
   draw(): void {
@@ -151,10 +161,10 @@ export class RoomComponent implements OnInit, AfterViewInit {
     try {
       const constraints = {video: {deviceId: this.selectedDeviceId}, audio: {echoCancellation: true}};
 
-       this.ownStream = await navigator.mediaDevices.getUserMedia(constraints);
-       this.ownStream.getTracks().forEach((track) =>{
-       this.peerConnection.addTrack(track, this.ownStream);
-       this.ownVideo.nativeElement.srcObject = this.ownStream
+       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+       this.localStream.getTracks().forEach((track) =>{
+       this.pc.addTrack(track, this.localStream);
+       this.ownVideo.nativeElement.srcObject = this.localStream
 
       })
 
@@ -169,6 +179,41 @@ export class RoomComponent implements OnInit, AfterViewInit {
   }
 
   addEntry() {
-    this.itemDoc.collection('partyList').add({user: 'soundso', hausnummer: 20})
+    this.callDoc.collection('partyList').add({user: 'soundso', hausnummer: 20})
+  }
+
+  async answerCall() {
+    const callId = this.callInput
+    const callDocL = this.afs.collection('calls').doc(callId);
+    const offerCandidates = callDocL.collection('offerCandidates');
+    const answerCandidates = callDocL.collection('answerCandidates');
+
+    this.pc.onicecandidate = event => {
+      event.candidate && this.answerCandidates.add(event.candidate.toJSON()); // json ?
+    }
+
+    let callData: any;
+    callDocL.get().subscribe(a => {
+      callData = a.data();
+      this.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+    })
+
+    let answer: any;
+    this.pc.createAnswer().then(answerDescription => {
+      this.pc.setLocalDescription(answerDescription);
+      answer = {type: answerDescription.type, sdp: answerDescription.sdp}
+    }).then(() => {
+      callDocL.update({answer});
+    });
+
+    offerCandidates.snapshotChanges().subscribe(snapshot => {
+      snapshot.forEach((change) => {
+        console.log(change);
+        if (change.type === 'added'){
+          let data = change.payload.doc.data();
+          this.pc.addIceCandidate(new RTCIceCandidate(data));
+        }
+      })
+    })
   }
 }
