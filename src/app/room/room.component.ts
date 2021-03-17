@@ -1,8 +1,8 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {ActivatedRoute} from "@angular/router";
-import {codex} from "./codex";
-import {environment} from "../../environments/environment";
-import {AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument} from "@angular/fire/firestore";
+import {ActivatedRoute} from '@angular/router';
+import {codex} from './codex';
+import {environment} from '../../environments/environment';
+import {AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument} from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-room',
@@ -49,7 +49,7 @@ export class RoomComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.channelName = params['roomId'];
+      this.channelName = params.roomId;
     });
     this.ctx = this.canvas.nativeElement.getContext('2d');
     this.pc = new RTCPeerConnection(environment.configuration);
@@ -59,11 +59,11 @@ export class RoomComponent implements OnInit, AfterViewInit {
     this.pc.ontrack = event => {
       event.streams[0].getTracks().forEach(track => {
         this.remoteStream.addTrack(track);
-      })
-    }
+      });
+    };
     this.remoteVideo.nativeElement.srcObject = this.remoteStream;
   }
-  constructor(private route: ActivatedRoute,private afs: AngularFirestore) {}
+  constructor(private route: ActivatedRoute, private afs: AngularFirestore) {}
 
   async connect() {
     // add me to room
@@ -75,8 +75,8 @@ export class RoomComponent implements OnInit, AfterViewInit {
 
     // Get Cancidates for caller, save to db
     this.pc.onicecandidate = event => {
-      event.candidate && this.offerCandidates.add(event.candidate.toJSON()); //toJSON nötig ?
-    }
+      event.candidate && this.offerCandidates.add(event.candidate.toJSON()); // toJSON nötig ?
+    };
 
     // Create offer
     const offerDescription = await this.pc.createOffer();
@@ -103,31 +103,31 @@ export class RoomComponent implements OnInit, AfterViewInit {
     this.answerCandidates.snapshotChanges().subscribe(snapshot => {
       snapshot.forEach((change) => {
         if (change.type === 'added'){
-          const candidate = new RTCIceCandidate(change.payload.doc.data())
+          const candidate = new RTCIceCandidate(change.payload.doc.data());
           this.pc.addIceCandidate(candidate);
         }
-      })
-    })
+      });
+    });
 
   }
 
 
   draw(): void {
 
-    this.ctx.font = '100px serif'
+    this.ctx.font = '100px serif';
 
-    this.ctx.textAlign = "center";
-    this.ctx.textBaseline = "middle";
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
     let y = this.ctx.canvas.height / 2;
     setInterval(() => {
-      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
-      this.ctx.fillText('canvas dummy', this.ctx.canvas.width / 2, y + 150)
-      this.ctx.fillText('😜😂😍', this.ctx.canvas.width / 2, y)
+      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+      this.ctx.fillText('canvas dummy', this.ctx.canvas.width / 2, y + 150);
+      this.ctx.fillText('😜😂😍', this.ctx.canvas.width / 2, y);
       y += 2;
       if (y >= this.ctx.canvas.height + 90) {
-        y = -90
+        y = -90;
       }
-    }, 30)
+    }, 30);
 
   }
 
@@ -161,12 +161,12 @@ export class RoomComponent implements OnInit, AfterViewInit {
     try {
       const constraints = {video: {deviceId: this.selectedDeviceId}, audio: {echoCancellation: true}};
 
-       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-       this.localStream.getTracks().forEach((track) =>{
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.localStream.getTracks().forEach((track) => {
        this.pc.addTrack(track, this.localStream);
-       this.ownVideo.nativeElement.srcObject = this.localStream
+       this.ownVideo.nativeElement.srcObject = this.localStream;
 
-      })
+      });
 
     } catch (error) {
       console.error('Error opening video camera.', error);
@@ -179,29 +179,29 @@ export class RoomComponent implements OnInit, AfterViewInit {
   }
 
   addEntry() {
-    this.callDoc.collection('partyList').add({user: 'soundso', hausnummer: 20})
+    this.callDoc.collection('partyList').add({user: 'soundso', hausnummer: 20});
   }
 
   async answerCall() {
-    const callId = this.callInput
+    const callId = this.callInput;
     const callDocL = this.afs.collection('calls').doc(callId);
     const offerCandidates = callDocL.collection('offerCandidates');
     const answerCandidates = callDocL.collection('answerCandidates');
 
     this.pc.onicecandidate = event => {
       event.candidate && this.answerCandidates.add(event.candidate.toJSON()); // json ?
-    }
+    };
 
     let callData: any;
     callDocL.get().subscribe(a => {
       callData = a.data();
       this.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
-    })
+    });
 
     let answer: any;
     this.pc.createAnswer().then(answerDescription => {
       this.pc.setLocalDescription(answerDescription);
-      answer = {type: answerDescription.type, sdp: answerDescription.sdp}
+      answer = {type: answerDescription.type, sdp: answerDescription.sdp};
     }).then(() => {
       callDocL.update({answer});
     });
@@ -210,10 +210,10 @@ export class RoomComponent implements OnInit, AfterViewInit {
       snapshot.forEach((change) => {
         console.log(change);
         if (change.type === 'added'){
-          let data = change.payload.doc.data();
+          const data = change.payload.doc.data();
           this.pc.addIceCandidate(new RTCIceCandidate(data));
         }
-      })
-    })
+      });
+    });
   }
 }
