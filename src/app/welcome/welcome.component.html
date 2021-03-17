@@ -1,5 +1,5 @@
 <div class="flex-container">
-  <form class="example-form">
+  <form class="example-form" *ngIf="!hide">
     <mat-form-field class="flex-item">
       <mat-label>Channel</mat-label>
       <input type="text" matInput [formControl]="roomControl" [errorStateMatcher]="matcher"
@@ -21,8 +21,10 @@
         Username is <strong>required</strong>
       </mat-error>
     </mat-form-field>
-    <a [disabled]="!validControl.valid || !roomControl.valid" class="flex-item" type="button" mat-raised-button color="primary" [routerLink]="['/room', channelName]" routerLinkActive="true" style="font-size: 18px; margin-top: 2em">
+    <a [disabled]="!validControl.valid || !roomControl.valid" class="flex-item" type="button" mat-raised-button
+       color="primary" (click)="go_next()" style="font-size: 18px; margin-top: 2em">
       Connect
     </a>
   </form>
+  <mat-progress-spinner *ngIf="hide" [mode]="'indeterminate'" color="primary"></mat-progress-spinner>
 </div>

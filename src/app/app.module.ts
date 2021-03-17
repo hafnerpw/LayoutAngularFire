@@ -13,6 +13,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { RouterModule, Routes } from '@angular/router';
 import { RoomComponent } from './room/room.component';
 import { WelcomeComponent } from './welcome/welcome.component'
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 
 const routes: Routes = [
   { path: 'room/:roomId', component: RoomComponent },
@@ -28,7 +29,9 @@ const routes: Routes = [
     BrowserModule, RouterModule.forRoot(routes),
     BrowserAnimationsModule,
     MatButtonModule,
-    MatInputModule, MatIconModule, FormsModule, MatOptionModule, MatSelectModule, AppRoutingModule, ReactiveFormsModule
+    MatInputModule, MatIconModule, FormsModule, MatOptionModule, MatSelectModule, AppRoutingModule,
+    ReactiveFormsModule, MatProgressSpinnerModule
+
 
   ],
   providers: [],

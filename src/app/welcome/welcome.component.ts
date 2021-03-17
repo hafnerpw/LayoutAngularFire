@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import {FormControl, FormGroupDirective, NgForm, Validators} from "@angular/forms";
 import {ErrorStateMatcher} from "@angular/material/core";
+import {Router} from "@angular/router";
 
 
 
@@ -22,11 +23,19 @@ export class WelcomeComponent implements OnInit {
   matcher = new MyErrorStateMatcher();
   username: string;
   roomControl = new FormControl('', Validators.required);
+  hide: boolean;
 
-
-  constructor() { }
+  constructor(private router: Router) { }
 
   ngOnInit(): void {
   }
 
+
+  go_next(){
+    this.hide = true;
+    setTimeout(() => {
+        this.router.navigate(['room/'+this.channelName])
+      }
+      , Math.floor(Math.random() * (1500 - 200 + 1)) + 200);
+  }
 }
