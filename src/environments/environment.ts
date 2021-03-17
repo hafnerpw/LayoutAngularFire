@@ -3,7 +3,27 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false
+  production: false,
+  firebaseConfig: {
+    apiKey: 'AIzaSyAAXEYWOSqakF11IC8cwtXjtdvuEQyYrUw',
+    authDomain: 'angularfire2-fcb1d.firebaseapp.com',
+    databaseURL: 'https://angularfire2-fcb1d-default-rtdb.europe-west1.firebasedatabase.app',
+    projectId: 'angularfire2-fcb1d',
+    storageBucket: 'angularfire2-fcb1d.appspot.com',
+    messagingSenderId: '238934934577',
+    appId: '1:238934934577:web:1d5a2bc5168d80fdcb0110'
+  },
+  configuration: {
+    iceServers: [
+      {
+        urls: [
+          'stun:stun1.l.google.com:19302',
+          'stun:stun2.l.google.com:19302',
+        ],
+      },
+    ],
+    iceCandidatePoolSize: 5,
+  }
 };
 
 /*

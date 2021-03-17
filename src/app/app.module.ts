@@ -14,6 +14,10 @@ import { RouterModule, Routes } from '@angular/router';
 import { RoomComponent } from './room/room.component';
 import { WelcomeComponent } from './welcome/welcome.component'
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {AngularFireModule} from "@angular/fire";
+import {AngularFireDatabaseModule} from "@angular/fire/database";
+import {AngularFireAuthModule} from "@angular/fire/auth";
+import {environment} from "../environments/environment";
 
 const routes: Routes = [
   { path: 'room/:roomId', component: RoomComponent },
@@ -30,7 +34,9 @@ const routes: Routes = [
     BrowserAnimationsModule,
     MatButtonModule,
     MatInputModule, MatIconModule, FormsModule, MatOptionModule, MatSelectModule, AppRoutingModule,
-    ReactiveFormsModule, MatProgressSpinnerModule
+    ReactiveFormsModule, MatProgressSpinnerModule,
+    AngularFireModule.initializeApp(environment.firebaseConfig),
+    AngularFireDatabaseModule, AngularFireAuthModule
 
 
   ],

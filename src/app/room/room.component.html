@@ -16,15 +16,15 @@
       </mat-form-field>
 
       <button type="button" mat-raised-button color="primary">
-        log BTN
+        log
       </button>
 
       <button type="button" mat-raised-button color="primary" (click)="connect()">
-        log BTN
+        connect
       </button>
 
-      <button type="button" mat-raised-button color="primary">
-        log BTN
+      <button type="button" mat-raised-button color="primary" (click)="addEntry()">
+        add PartyList Entry
       </button>
 
       <button type="button" mat-raised-button color="primary">
@@ -37,7 +37,7 @@
   </div>
   <div class="remoteVideos">
     <div class="remoteVideo">
-      <video autoplay style="width: 100%;" playsinline controls="false"></video>
+      <video #remote1 autoplay style="width: 100%;" playsinline controls="false"></video>
     </div>
     <div class="remoteVideo">
       <video autoplay style="width: 100%;" playsinline controls="false"></video>

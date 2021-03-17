@@ -1,0 +1,11 @@
+{
+  "targets": {
+    "angularfire2-fcb1d": {
+      "hosting": {
+        "n1": [
+          "angularfire2-fcb1d"
+        ]
+      }
+    }
+  }
+}
