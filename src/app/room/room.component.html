@@ -4,11 +4,7 @@
     <canvas #gameCanvas [width]="ctxWidth" [height]="ctxHeight" style="border:1px solid #000000;">
     </canvas>
     <div class="roomControls">
-
-      <mat-form-field class="example-full-width">
-        <mat-label>Channel Name</mat-label>
-        <input matInput placeholder="Default" [(ngModel)]="channelName">
-      </mat-form-field>
+      <h2>Channel {{channelName}}</h2>
 
       <mat-form-field class="example-full-width">
         <mat-label>Cameras</mat-label>
@@ -35,7 +31,7 @@
         log BTN
       </button>
       <div class="ownVideo">
-        <video #ownVideo autoplay style="width: 100%;" playsinline controls="false"></video>
+        <video #ownVideo autoplay style="width: 100%;" playsinline></video>
       </div>
     </div>
   </div>

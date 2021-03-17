@@ -34,7 +34,7 @@ export class WelcomeComponent implements OnInit {
   go_next(){
     this.hide = true;
     setTimeout(() => {
-        this.router.navigate(['room/'+this.channelName])
+        this.router.navigate(['room',this.channelName])
       }
       , Math.floor(Math.random() * (1500 - 200 + 1)) + 200);
   }

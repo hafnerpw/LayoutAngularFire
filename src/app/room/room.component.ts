@@ -1,4 +1,5 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {ActivatedRoute} from "@angular/router";
 
 @Component({
   selector: 'app-room',
@@ -25,9 +26,14 @@ export class RoomComponent implements OnInit, AfterViewInit {
   selectedDeviceId: string;
 
   ngOnInit(): void {
+    this.route.params.subscribe(params => {
+      this.channelName = params['roomId'];
+    });
     this.ctx = this.canvas.nativeElement.getContext('2d');
   }
-
+  constructor(
+    private route: ActivatedRoute,
+  ) {}
   draw(): void {
 
     this.ctx.font = '100px serif'
@@ -37,12 +43,13 @@ export class RoomComponent implements OnInit, AfterViewInit {
     let y = this.ctx.canvas.height / 2;
     setInterval(() => {
       this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
+      this.ctx.fillText('canvas dummy', this.ctx.canvas.width / 2, y + 150)
       this.ctx.fillText('😜😂😍', this.ctx.canvas.width / 2, y)
-      y += 3;
-      if (y >= this.ctx.canvas.height + 15) {
-        y = 0
+      y += 2;
+      if (y >= this.ctx.canvas.height + 90) {
+        y = -90
       }
-    }, 36)
+    }, 30)
 
   }
 
@@ -55,9 +62,11 @@ export class RoomComponent implements OnInit, AfterViewInit {
     });
 
     navigator.mediaDevices.addEventListener('devicechange', event => {
+      this.cameras = [];
       this.getConnectedDevices('videoinput', cameras => {
         this.cameras = cameras;
         console.log('Devices Changed');
+        this.openCamera().then(r => null);
       });
     });
   }
@@ -77,7 +86,7 @@ export class RoomComponent implements OnInit, AfterViewInit {
 
   async openCamera() {
     try {
-      const constraints = {video: {deviceId: this.selectedDeviceId, resizeMode: 'crop-and-scale'}, audio: {echoCancellation: true}};
+      const constraints = {video: {deviceId: this.selectedDeviceId}, audio: {echoCancellation: true}};
       this.ownVideo.nativeElement.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
 
     } catch (error) {
