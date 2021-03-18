@@ -1,8 +1,8 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {ActivatedRoute} from "@angular/router";
-import {codex} from "./codex";
-import {environment} from "../../environments/environment";
-import {AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument} from "@angular/fire/firestore";
+import {ActivatedRoute} from '@angular/router';
+import {codex} from './codex';
+import {environment} from '../../environments/environment';
+import {AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument} from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-room',
@@ -15,15 +15,16 @@ export class RoomComponent implements OnInit, AfterViewInit {
 
   cameras: MediaDeviceInfo[];
   myUserId: string;
+  private callDoc: AngularFirestoreDocument<any>;
+  // webRTC Variables
+  peerConnection: RTCPeerConnection;
   localStream: MediaStream;
   remoteStream: MediaStream;
+  roomDialog = null;
+  roomId: string;
 
+  //
 
-
-  private callDoc: AngularFirestoreDocument<any>;
-
-
-  title = 'n1';
   @ViewChild('gameCanvas', {static: true})
   canvas: ElementRef<HTMLCanvasElement>;
 
@@ -38,182 +39,141 @@ export class RoomComponent implements OnInit, AfterViewInit {
   ctxHeight = 600;
   channelName: string;
 
-  pc: RTCPeerConnection;
-
   selectedDeviceId: string;
-  private partyList: any;
-  private answerCandidates: AngularFirestoreCollection<any>;
-  private offerCandidates: AngularFirestoreCollection<any>;
   callInput: string;
 
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.channelName = params['roomId'];
+      this.channelName = params.roomId;
     });
     this.ctx = this.canvas.nativeElement.getContext('2d');
-    this.pc = new RTCPeerConnection(environment.configuration);
     this.myUserId = codex.guid();
 
-    this.remoteStream = new MediaStream();
-    this.pc.ontrack = event => {
-      event.streams[0].getTracks().forEach(track => {
-        this.remoteStream.addTrack(track);
-      })
-    }
-    this.remoteVideo.nativeElement.srcObject = this.remoteStream;
   }
-  constructor(private route: ActivatedRoute,private afs: AngularFirestore) {}
-
-  async connect() {
-    // add me to room
-    this.callDoc = this.afs.collection('calls').doc();
-    this.offerCandidates = this.callDoc.collection('offerCandidates');
-    this.answerCandidates = this.callDoc.collection('answerCandidates');
-
-    this.callInput = this.callDoc.ref.id;
-
-    // Get Cancidates for caller, save to db
-    this.pc.onicecandidate = event => {
-      event.candidate && this.offerCandidates.add(event.candidate.toJSON()); //toJSON nötig ?
-    }
-
-    // Create offer
-    const offerDescription = await this.pc.createOffer();
-    await this.pc.setLocalDescription(offerDescription);
-
-    const offer = {
-      sdp: offerDescription.sdp,
-      type: offerDescription.type,
-    };
-
-    await this.callDoc.set({offer});
-
-
-    // listen for remote answer
-    this.callDoc.snapshotChanges().subscribe(changes => {
-      const data = changes.payload.data();
-      if (!this.pc.currentRemoteDescription && data?.answer){
-        const answerDescription = new RTCSessionDescription(data.answer);
-        this.pc.setRemoteDescription(answerDescription);
-      }
-    });
-
-    // Listen for remote ICE candidates
-    this.answerCandidates.snapshotChanges().subscribe(snapshot => {
-      snapshot.forEach((change) => {
-        if (change.type === 'added'){
-          const candidate = new RTCIceCandidate(change.payload.doc.data())
-          this.pc.addIceCandidate(candidate);
-        }
-      })
-    })
-
-  }
-
+  constructor(private route: ActivatedRoute, private afs: AngularFirestore) {}
 
   draw(): void {
 
-    this.ctx.font = '100px serif'
+    this.ctx.font = '100px serif';
 
-    this.ctx.textAlign = "center";
-    this.ctx.textBaseline = "middle";
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
     let y = this.ctx.canvas.height / 2;
     setInterval(() => {
-      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
-      this.ctx.fillText('canvas dummy', this.ctx.canvas.width / 2, y + 150)
-      this.ctx.fillText('😜😂😍', this.ctx.canvas.width / 2, y)
+      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+      this.ctx.fillText('canvas dummy', this.ctx.canvas.width / 2, y + 150);
+      this.ctx.fillText('😜😂😍', this.ctx.canvas.width / 2, y);
       y += 2;
       if (y >= this.ctx.canvas.height + 90) {
-        y = -90
+        y = -90;
       }
-    }, 30)
+    }, 30);
 
   }
 
   ngAfterViewInit(): void {
     this.draw();
+  }
 
-    this.getConnectedDevices('videoinput', cameras => {
-      this.cameras = cameras;
-      console.log('Cameras', this.cameras);
+  async createRoom(): Promise<void> {
+    const roomRef = await this.afs.collection('rooms').doc();
+    console.log('created RoomRef');
+    this.peerConnection = new RTCPeerConnection(environment.configuration);
+
+    this.registerPeerConnectionListener();
+
+    this.localStream.getTracks().forEach(track => {
+      this.peerConnection.addTrack(track, this.localStream);
     });
 
-    navigator.mediaDevices.addEventListener('devicechange', event => {
-      this.cameras = [];
-      this.getConnectedDevices('videoinput', cameras => {
-        this.cameras = cameras;
-        console.log('Devices Changed');
-        this.openCamera().then(r => null);
+    // Code for collecting ICE candidates below
+    const callerCandidatesCollection = roomRef.collection('callerCandidates');
+
+    this.peerConnection.addEventListener('icecandidate',  event => {
+      if (!event.candidate){
+        console.log('got final candidate');
+        return;
+      }
+      console.log('Got candidate: ', event.candidate);
+      callerCandidatesCollection.add(event.candidate.toJSON());
+    });
+
+    const offer = await this.peerConnection.createOffer();
+    await this.peerConnection.setLocalDescription(offer);
+    console.log('created offer: ', offer);
+
+    const roomWithOffer = {
+      offer: {
+        type: offer.type,
+        sdp: offer.sdp
+      }
+    };
+    await roomRef.set(roomWithOffer);
+    this.roomId = roomRef.ref.id;
+
+    this.channelName = roomRef.ref.id;
+
+    console.log(`New room created with SDP offer. Room ID: ${roomRef.ref.id}`);
+    // Code for creating a room above
+    this.peerConnection.addEventListener('track', event => {
+      console.log('Got remote track:', event.streams[0]);
+      event.streams[0].getTracks().forEach(track => {
+        console.log('add a track to the remotestream', track);
+        this.remoteStream.addTrack(track);
       });
     });
-  }
 
-  getConnectedDevices(type, callback) {
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const filtered = devices.filter(device => device.kind === type);
-        callback(filtered);
-      });
-  }
+    roomRef.snapshotChanges().subscribe(async snapshot => {
+      if (snapshot.type === 'added') {
+        const data = snapshot.payload.data();
 
-  async openCamera() {
-    try {
-      const constraints = {video: {deviceId: this.selectedDeviceId}, audio: {echoCancellation: true}};
-
-       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-       this.localStream.getTracks().forEach((track) =>{
-       this.pc.addTrack(track, this.localStream);
-       this.ownVideo.nativeElement.srcObject = this.localStream
-
-      })
-
-    } catch (error) {
-      console.error('Error opening video camera.', error);
-    }
-
-  }
-
-  private readNewMessage(val: unknown) {
-
-  }
-
-  addEntry() {
-    this.callDoc.collection('partyList').add({user: 'soundso', hausnummer: 20})
-  }
-
-  async answerCall() {
-    const callId = this.callInput
-    const callDocL = this.afs.collection('calls').doc(callId);
-    const offerCandidates = callDocL.collection('offerCandidates');
-    const answerCandidates = callDocL.collection('answerCandidates');
-
-    this.pc.onicecandidate = event => {
-      event.candidate && this.answerCandidates.add(event.candidate.toJSON()); // json ?
-    }
-
-    let callData: any;
-    callDocL.get().subscribe(a => {
-      callData = a.data();
-      this.pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
-    })
-
-    let answer: any;
-    this.pc.createAnswer().then(answerDescription => {
-      this.pc.setLocalDescription(answerDescription);
-      answer = {type: answerDescription.type, sdp: answerDescription.sdp}
-    }).then(() => {
-      callDocL.update({answer});
-    });
-
-    offerCandidates.snapshotChanges().subscribe(snapshot => {
-      snapshot.forEach((change) => {
-        console.log(change);
-        if (change.type === 'added'){
-          let data = change.payload.doc.data();
-          this.pc.addIceCandidate(new RTCIceCandidate(data));
+        // @ts-ignore
+        if (!this.peerConnection.currentRemoteDescription && data && data.answer) {
+          // @ts-ignore
+          console.log('got remote description', data.answer);
+          // @ts-ignore
+          const rtcSessionDescription = new RTCSessionDescription(data.answer);
+          await this.peerConnection.setRemoteDescription(rtcSessionDescription);
         }
-      })
-    })
+      }
+    });
+    // Listen for remote ICE candidates below
+    roomRef.collection('calleeCandidates').snapshotChanges()
+      .subscribe(change => {
+      change.forEach(async c => {
+        if (c.type === 'added'){
+          const data = c.payload.doc.data();
+          console.log('Got new remote ICE candidate', JSON.stringify(data));
+          await this.peerConnection.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });
+  }
+
+  private registerPeerConnectionListener(): void {
+    this.peerConnection.addEventListener('icegatheringstatechange', () => {
+      console.log(`ICE gathering state changed: ${this.peerConnection.iceGatheringState}`);
+    });
+    this.peerConnection.addEventListener('connectionstatechange', () => {
+      console.log(`ICE gathering state changed: ${this.peerConnection.connectionState}`);
+    });
+    this.peerConnection.addEventListener('signalingstatechange', () => {
+      console.log(`ICE gathering state changed: ${this.peerConnection.signalingState}`);
+    });
+    this.peerConnection.addEventListener('iceconnectionstatechange ', () => {
+      console.log(`ICE gathering state changed: ${this.peerConnection.iceConnectionState}`);
+    });
+  }
+
+  async openCamera(): Promise<void>   {
+    const stream = await navigator.mediaDevices
+      .getUserMedia({video: true, audio: true});
+    this.ownVideo.nativeElement.srcObject = stream;
+    this.localStream = stream;
+    this.remoteStream = new MediaStream();
+    this.remoteVideo.nativeElement.srcObject = this.remoteStream;
+
+    console.log('stream', this.remoteVideo.nativeElement.srcObject);
   }
 }
